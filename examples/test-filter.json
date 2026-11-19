@@ -1,0 +1,9 @@
+{
+  "package": "A",
+  "repository": "graph.json",
+  "test_mode": true,
+  "version": "1.0",
+  "graph_image": "../out/test-filter.png",
+  "ascii_tree": true,
+  "filter_substring": "b"
+}

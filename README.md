@@ -9,5 +9,10 @@ CLI для анализа зависимостей Python-пакетов. Нас
 
     python -m pip install -r requirements.txt
     python -m src examples/requests.json --show-config
-    python -m src examples/requests.json
+    python -m src examples/requests.json --direct
+    python -m src examples/test-cycle.json
+    python -m src examples/test-filter.json
     python -m unittest discover -s tests -v
+
+Граф строится рекурсивным BFS по уровням. Первый тестовый конфиг содержит
+цикл B → D → B и общую зависимость D. Второй исключает B по подстроке.

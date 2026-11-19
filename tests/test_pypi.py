@@ -3,6 +3,9 @@
 import unittest
 from unittest.mock import patch
 
+from packaging.requirements import Requirement
+
+from src.graph import Package
 from src.pypi import PyPIRepository
 
 
@@ -33,3 +36,17 @@ class PyPITests(unittest.TestCase):
     def test_no_dependencies(self, _download):
         repo = PyPIRepository("https://example.org")
         self.assertEqual(repo.direct("leaf", "1.0"), [])
+
+    @patch("src.pypi.download_json")
+    def test_resolves_latest_compatible_release(self, download):
+        download.return_value = {"releases": {
+            "1.0": [{}],
+            "1.5": [{"requires_python": ">=3.10"}],
+            "1.6": [{"yanked": True}],
+            "1.7": [{"requires_python": ">=99"}],
+            "2.0": [{}],
+        }}
+        repo = PyPIRepository("https://example.org")
+        req = Requirement("leaf[foo]>=1,<2")
+        self.assertEqual(repo.resolve("leaf", req), Package("leaf", "1.5",
+                                                            ("foo",)))

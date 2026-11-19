@@ -1,12 +1,17 @@
 """Получение метаданных выпусков через публичный JSON API PyPI."""
 
 import json
+import platform
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import urlopen
 
 from packaging.requirements import Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
+from packaging.version import InvalidVersion, Version
+
+from .graph import Package
 
 
 REQUEST_TIMEOUT = 15
@@ -42,6 +47,31 @@ class PyPIRepository:
             raise ValueError(f"{name}=={version}: неверный requires_dist")
         return active_requirements(declarations, extras)
 
+    def dependencies(self, package, allowed):
+        """Разрешить активные зависимости выбранного узла."""
+        requirements = self.direct(package.name, package.version, package.extras)
+        result = []
+        for req in requirements:
+            name = canonicalize_name(req.name)
+            if allowed(name):
+                result.append(self.resolve(name, req))
+        return result
+
+    def resolve(self, name, requirement):
+        """Выбрать наиболее свежую версию для одного требования."""
+        if requirement.url:
+            raise ValueError(f"{name}: прямые URL в требованиях не поддержаны")
+        releases = self.fetch(name).get("releases")
+        if not isinstance(releases, dict):
+            raise ValueError(f"{name}: ответ API не содержит список releases")
+        options = compatible_releases(releases)
+        matches = requirement.specifier.filter(options, prereleases=None)
+        chosen = max(matches, default=None)
+        if chosen is None:
+            raise ValueError(f"{name}{requirement.specifier}: нет версии")
+        extras = tuple(sorted(map(canonicalize_name, requirement.extras)))
+        return Package(name, options[chosen], extras)
+
 
 def download_json(url):
     """Декодировать HTTP-ответ и добавить адрес в сообщение об ошибке."""
@@ -67,3 +97,25 @@ def active_requirements(declarations, extras):
             req.marker.evaluate({"extra": extra}) for extra in contexts
         )
     ]
+
+
+def compatible_releases(releases):
+    """Оставить выпуски с файлами для текущей версии Python."""
+    python = Version(platform.python_version())
+    result = {}
+    for release, files in releases.items():
+        try:
+            version = Version(release)
+        except InvalidVersion:
+            continue
+        if files and any(file_supports_python(file, python) for file in files):
+            result[version] = release
+    return result
+
+
+def file_supports_python(file, python):
+    """Проверить признак yanked и ограничение Requires-Python."""
+    if file.get("yanked"):
+        return False
+    specifier = file.get("requires_python")
+    return not specifier or SpecifierSet(specifier).contains(python)
