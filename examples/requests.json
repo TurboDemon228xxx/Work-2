@@ -1,0 +1,9 @@
+{
+  "package": "requests",
+  "repository": "https://pypi.org",
+  "test_mode": false,
+  "version": "2.32.3",
+  "graph_image": "../out/requests.png",
+  "ascii_tree": true,
+  "filter_substring": ""
+}
