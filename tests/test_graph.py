@@ -5,6 +5,7 @@ from pathlib import Path
 
 from src.graph import Package, build_graph
 from src.local_repo import LocalRepository
+from src.order import installation_order
 
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
@@ -36,3 +37,18 @@ class GraphTests(unittest.TestCase):
     def test_unknown_root(self):
         with self.assertRaisesRegex(ValueError, "Z"):
             self.graph("Z")
+
+    def test_order_reports_cycle_and_deduplicates_shared_child(self):
+        order, cycles = installation_order(self.graph(), Package("A"))
+        self.assertEqual([node.name for node in order], list("DBECA"))
+        self.assertEqual(cycles, [(Package("D"), Package("B"))])
+
+    def test_order_with_filter_is_dependency_first(self):
+        graph = self.graph(substring="B")
+        order, cycles = installation_order(graph, Package("A"))
+        self.assertEqual([node.name for node in order], list("DECA"))
+        self.assertEqual(cycles, [])
+
+    def test_order_for_package_without_dependencies(self):
+        root = Package("F")
+        self.assertEqual(installation_order(self.graph("F"), root), ([root], []))

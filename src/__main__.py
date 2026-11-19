@@ -10,6 +10,7 @@ from packaging.utils import canonicalize_name
 from .config import load_config
 from .graph import Package, build_graph, graph_lines
 from .local_repo import LocalRepository
+from .order import installation_order
 from .pypi import PyPIRepository
 
 
@@ -27,19 +28,30 @@ def open_repository(config):
     return PyPIRepository(config.repository), root
 
 
-def analyze(config, direct_only):
+def show_order(graph, root):
+    """Показать порядок установки и сообщить о циклических рёбрах."""
+    order, cycles = installation_order(graph, root)
+    for source, target in cycles:
+        print(f"Цикл: {source} -> {target}", file=sys.stderr)
+    print("\n".join(map(str, order)))
+
+
+def analyze(config, args):
     """Напечатать прямые зависимости либо полный список смежности."""
     repository, root = open_repository(config)
-    if direct_only and not config.test_mode:
+    if args.direct and not config.test_mode:
         direct = repository.direct(root.name, root.version)
         print("\n".join(map(str, direct)) or "Прямых зависимостей нет.")
         return
-    if direct_only:
+    if args.direct:
         direct = repository.dependencies(root, lambda name: True)
         print("\n".join(map(str, direct)) or "Прямых зависимостей нет.")
         return
     graph = build_graph(root, repository.dependencies, config.filter_substring)
-    print("\n".join(graph_lines(graph)))
+    if args.order:
+        show_order(graph, root)
+    else:
+        print("\n".join(graph_lines(graph)))
 
 
 def main(argv=None):
@@ -49,13 +61,14 @@ def main(argv=None):
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--show-config", action="store_true")
     modes.add_argument("--direct", action="store_true")
+    modes.add_argument("--order", action="store_true")
     args = parser.parse_args(argv)
     try:
         config = load_config(args.config)
         if args.show_config:
             show_config(config)
         else:
-            analyze(config, args.direct)
+            analyze(config, args)
     except (OSError, ValueError) as exc:
         print(f"Ошибка: {exc}", file=sys.stderr)
         return 1
