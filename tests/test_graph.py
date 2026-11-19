@@ -51,4 +51,5 @@ class GraphTests(unittest.TestCase):
 
     def test_order_for_package_without_dependencies(self):
         root = Package("F")
-        self.assertEqual(installation_order(self.graph("F"), root), ([root], []))
+        result = installation_order(self.graph("F"), root)
+        self.assertEqual(result, ([root], []))

@@ -26,7 +26,8 @@ class PyPIRepository:
 
     def fetch(self, name, version=""):
         """Получить один выпуск либо ответ со списком выпусков проекта."""
-        path = "/".join(quote(part, safe="") for part in (name, version) if part)
+        parts = (name, version) if version else (name,)
+        path = "/".join(quote(part, safe="") for part in parts)
         if path not in self.cache:
             url = f"{self.base_url}/pypi/{path}/json"
             self.cache[path] = download_json(url)
@@ -49,7 +50,9 @@ class PyPIRepository:
 
     def dependencies(self, package, allowed):
         """Разрешить активные зависимости выбранного узла."""
-        requirements = self.direct(package.name, package.version, package.extras)
+        requirements = self.direct(
+            package.name, package.version, package.extras
+        )
         result = []
         for req in requirements:
             name = canonicalize_name(req.name)

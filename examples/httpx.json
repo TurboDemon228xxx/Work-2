@@ -1,0 +1,9 @@
+{
+  "package": "httpx",
+  "repository": "https://pypi.org",
+  "test_mode": false,
+  "version": "0.28.1",
+  "graph_image": "../out/httpx.png",
+  "ascii_tree": true,
+  "filter_substring": ""
+}

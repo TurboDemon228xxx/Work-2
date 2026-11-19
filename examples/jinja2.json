@@ -1,0 +1,9 @@
+{
+  "package": "Jinja2",
+  "repository": "https://pypi.org",
+  "test_mode": false,
+  "version": "3.1.6",
+  "graph_image": "../out/jinja2.png",
+  "ascii_tree": true,
+  "filter_substring": ""
+}

@@ -48,5 +48,5 @@ class PyPITests(unittest.TestCase):
         }}
         repo = PyPIRepository("https://example.org")
         req = Requirement("leaf[foo]>=1,<2")
-        self.assertEqual(repo.resolve("leaf", req), Package("leaf", "1.5",
-                                                            ("foo",)))
+        expected = Package("leaf", "1.5", ("foo",))
+        self.assertEqual(repo.resolve("leaf", req), expected)
